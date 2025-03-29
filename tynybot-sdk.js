@@ -1,33 +1,59 @@
 (function () {
-  const currentScript = document.currentScript || (function () {
-    const scripts = document.getElementsByTagName('script');
-    return scripts[scripts.length - 1];
-  })();
-
+  const currentScript = document.currentScript || document.getElementsByTagName('script')[0];
   const apiKey = currentScript.getAttribute('data-api-key');
   const siteURL = currentScript.getAttribute('data-site-url');
+  const position = currentScript.getAttribute('data-position') || 'right'; // 'left' or 'right'
+  const theme = currentScript.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 
   if (!apiKey || !siteURL) {
     console.error("TYNYBOT SDK: Missing data-api-key or data-site-url.");
     return;
   }
 
-  // Inject basic styles + chat UI
+  // Inject styles
   const style = document.createElement('style');
   style.textContent = `
-    #tyny-chat {
+    #tynybot-toggle {
       position: fixed;
       bottom: 20px;
-      right: 20px;
+      ${position === 'left' ? 'left: 20px' : 'right: 20px'};
+      background: #2563eb;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: sans-serif;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      cursor: pointer;
+      z-index: 9999;
+      transition: background 0.3s;
+    }
+    #tynybot-toggle:hover {
+      background: #1e40af;
+    }
+    #tyny-chat {
+      position: fixed;
+      bottom: 80px;
+      ${position === 'left' ? 'left: 20px' : 'right: 20px'};
       width: 320px;
       height: 480px;
-      background: white;
+      background: ${theme === 'dark' ? '#1f2937' : '#ffffff'};
+      color: ${theme === 'dark' ? '#f3f4f6' : '#000'};
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      display: flex;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      display: none;
       flex-direction: column;
       font-family: sans-serif;
       z-index: 9999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #tyny-chat.open {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
     }
     #tyny-chat-messages {
       flex: 1;
@@ -42,17 +68,27 @@
       font-size: 14px;
       white-space: pre-wrap;
     }
-    .tyny-msg.user { background: #dbeafe; align-self: flex-end; }
-    .tyny-msg.bot { background: #f3f4f6; align-self: flex-start; }
+    .tyny-msg.user {
+      background: ${theme === 'dark' ? '#334155' : '#dbeafe'};
+      color: ${theme === 'dark' ? '#cbd5e1' : '#1e3a8a'};
+      align-self: flex-end;
+    }
+    .tyny-msg.bot {
+      background: ${theme === 'dark' ? '#374151' : '#f3f4f6'};
+      color: ${theme === 'dark' ? '#f3f4f6' : '#111827'};
+      align-self: flex-start;
+    }
     #tyny-chat-form {
       display: flex;
       padding: 10px;
-      border-top: 1px solid #ddd;
+      border-top: 1px solid ${theme === 'dark' ? '#374151' : '#ddd'};
     }
     #tyny-chat-input {
       flex: 1;
       padding: 8px;
-      border: 1px solid #ccc;
+      background: ${theme === 'dark' ? '#1f2937' : '#fff'};
+      color: ${theme === 'dark' ? '#f3f4f6' : '#000'};
+      border: 1px solid ${theme === 'dark' ? '#4b5563' : '#ccc'};
       border-radius: 6px;
     }
     #tyny-chat-send {
@@ -67,6 +103,13 @@
   `;
   document.head.appendChild(style);
 
+  // Create toggle button
+  const toggle = document.createElement('div');
+  toggle.id = 'tynybot-toggle';
+  toggle.textContent = '💬 Chat with TynyBot';
+  document.body.appendChild(toggle);
+
+  // Create chat box
   const chat = document.createElement('div');
   chat.id = 'tyny-chat';
   chat.innerHTML = `
@@ -104,12 +147,9 @@
       const res = await fetch('https://tyny-bot.onrender.com/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question,
-          siteURL,
-          apiKey
-        })
+        body: JSON.stringify({ question, siteURL, apiKey })
       });
+
       const data = await res.json();
       const botMsg = messagesEl.querySelector('.tyny-msg.bot:last-child');
       botMsg.textContent = data.reply || 'No response.';
@@ -117,6 +157,17 @@
       console.error('Bot error:', err);
       const botMsg = messagesEl.querySelector('.tyny-msg.bot:last-child');
       botMsg.textContent = 'Error talking to the bot.';
+    }
+  });
+
+  toggle.addEventListener('click', () => {
+    const open = chat.classList.contains('open');
+    if (open) {
+      chat.classList.remove('open');
+      setTimeout(() => (chat.style.display = 'none'), 300);
+    } else {
+      chat.style.display = 'flex';
+      setTimeout(() => chat.classList.add('open'), 10);
     }
   });
 })();
