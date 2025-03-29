@@ -4,6 +4,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const cors = require('cors');
 const OpenAI = require('openai');
+require('dotenv').config();
 
 const app = express();
 app.use(express.json());
@@ -16,7 +17,7 @@ app.use(session({
   saveUninitialized: true,
 }));
 
-// Utility: Scrape site content
+// Utility: Scrape content from site
 async function scrapeSiteContent(url) {
   try {
     const response = await axios.get(url);
@@ -28,13 +29,13 @@ async function scrapeSiteContent(url) {
   }
 }
 
-// Main /ask endpoint
+// Main ask endpoint
 app.post('/ask', async (req, res) => {
   try {
-    const { question, siteURL, apiKey } = req.body;
+    const { question, siteURL } = req.body;
 
-    if (!question || !siteURL || !apiKey) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!question || !siteURL) {
+      return res.status(400).json({ error: 'Missing question or siteURL' });
     }
 
     const scrapedContent = await scrapeSiteContent(siteURL);
@@ -43,7 +44,9 @@ app.post('/ask', async (req, res) => {
       return res.status(400).json({ error: 'Could not extract site content' });
     }
 
-    const openai = new OpenAI({ apiKey });
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const greetings = ["hi", "hello", "hey", "greetings"];
     let prompt = '';
@@ -93,5 +96,6 @@ app.get('/conversation', (req, res) => {
   res.json({ chat: req.session.chat || [] });
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`TynyBot backend running on port ${PORT}`));
