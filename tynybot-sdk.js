@@ -26,10 +26,6 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
       cursor: pointer;
       z-index: 9999;
-      transition: background 0.3s;
-    }
-    #tynybot-toggle:hover {
-      background: #1e40af;
     }
     #tyny-chat {
       position: fixed;
@@ -60,22 +56,34 @@
       overflow-y: auto;
     }
     .tyny-msg {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
       margin: 6px 0;
+    }
+    .tyny-avatar {
+      font-size: 18px;
+      margin-top: auto;
+    }
+    .tyny-text {
+      background: ${theme === 'dark' ? '#374151' : '#f3f4f6'};
+      color: ${theme === 'dark' ? '#f3f4f6' : '#111827'};
       padding: 8px 12px;
       border-radius: 8px;
       max-width: 80%;
       font-size: 14px;
       white-space: pre-wrap;
+      margin-bottom: 2px;
     }
-    .tyny-msg.user {
+    .tyny-msg.user .tyny-text {
       background: ${theme === 'dark' ? '#334155' : '#dbeafe'};
       color: ${theme === 'dark' ? '#cbd5e1' : '#1e3a8a'};
       align-self: flex-end;
     }
-    .tyny-msg.bot {
-      background: ${theme === 'dark' ? '#374151' : '#f3f4f6'};
-      color: ${theme === 'dark' ? '#f3f4f6' : '#111827'};
-      align-self: flex-start;
+    .tyny-time {
+      font-size: 11px;
+      color: #aaa;
+      text-align: right;
     }
     #tyny-chat-form {
       display: flex;
@@ -125,7 +133,27 @@
   function addMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = `tyny-msg ${sender}`;
-    msg.textContent = text;
+
+    const avatar = document.createElement('span');
+    avatar.className = 'tyny-avatar';
+    avatar.textContent = sender === 'bot' ? '🤖' : '';
+
+    const contentBox = document.createElement('div');
+
+    const msgText = document.createElement('div');
+    msgText.className = 'tyny-text';
+    msgText.textContent = text;
+
+    const timestamp = document.createElement('div');
+    timestamp.className = 'tyny-time';
+    const now = new Date();
+    timestamp.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    contentBox.appendChild(msgText);
+    contentBox.appendChild(timestamp);
+
+    msg.appendChild(avatar);
+    msg.appendChild(contentBox);
     messagesEl.appendChild(msg);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -147,12 +175,12 @@
       });
 
       const data = await res.json();
-      const botMsg = messagesEl.querySelector('.tyny-msg.bot:last-child');
-      botMsg.textContent = data.reply || 'No response.';
+      const botMsg = messagesEl.querySelector('.tyny-msg.bot:last-child .tyny-text');
+      if (botMsg) botMsg.textContent = data.reply || 'No response.';
     } catch (err) {
       console.error('Bot error:', err);
-      const botMsg = messagesEl.querySelector('.tyny-msg.bot:last-child');
-      botMsg.textContent = 'Error talking to the bot.';
+      const botMsg = messagesEl.querySelector('.tyny-msg.bot:last-child .tyny-text');
+      if (botMsg) botMsg.textContent = 'Error talking to the bot.';
     }
   });
 
