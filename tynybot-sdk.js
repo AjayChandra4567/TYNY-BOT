@@ -1,12 +1,11 @@
 (function () {
   const currentScript = document.currentScript || document.getElementsByTagName('script')[0];
-  const apiKey = currentScript.getAttribute('data-api-key');
   const siteURL = currentScript.getAttribute('data-site-url');
-  const position = currentScript.getAttribute('data-position') || 'right'; // 'left' or 'right'
+  const position = currentScript.getAttribute('data-position') || 'right';
   const theme = currentScript.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 
-  if (!apiKey || !siteURL) {
-    console.error("TYNYBOT SDK: Missing data-api-key or data-site-url.");
+  if (!siteURL) {
+    console.error("TYNYBOT SDK: Missing data-site-url.");
     return;
   }
 
@@ -103,13 +102,11 @@
   `;
   document.head.appendChild(style);
 
-  // Create toggle button
   const toggle = document.createElement('div');
   toggle.id = 'tynybot-toggle';
   toggle.textContent = '💬 Chat with TynyBot';
   document.body.appendChild(toggle);
 
-  // Create chat box
   const chat = document.createElement('div');
   chat.id = 'tyny-chat';
   chat.innerHTML = `
@@ -140,14 +137,13 @@
 
     addMessage(question, 'user');
     input.value = '';
-
     addMessage('Typing...', 'bot');
 
     try {
       const res = await fetch('https://tyny-bot.onrender.com/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, siteURL, apiKey })
+        body: JSON.stringify({ question, siteURL })
       });
 
       const data = await res.json();
