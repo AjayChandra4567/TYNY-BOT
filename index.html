@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TynyBot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      transition: background 0.3s;
+    }
+
+    .chat-container {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .message {
+      margin: 10px 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      max-width: 80%;
+      position: relative;
+    }
+
+    .user {
+      background-color: #e0f2fe;
+      color: #1e3a8a;
+      align-self: flex-end;
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .bot {
+      background-color: #f3f4f6;
+      color: #111827;
+      align-self: flex-start;
+      margin-right: auto;
+      text-align: left;
+    }
+
+    .sender-label {
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .timestamp {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+
+    .timestamp.user {
+      text-align: right;
+    }
+
+    .timestamp.bot {
+      text-align: left;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 16px;
+      border-top: 1px solid #e5e7eb;
+      background: #ffffff;
+      transition: background 0.3s;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      outline: none;
+      font-size: 1rem;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .chat-input button {
+      background: #2563eb;
+      color: white;
+      padding: 12px 16px;
+      margin-left: 8px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .chat-input button:hover {
+      background: #1e40af;
+    }
+
+    /* Dark mode styles */
+    body.dark {
+      background: #1f2937;
+    }
+
+    body.dark .chat-container {
+      background: #111827;
+      color: #f3f4f6;
+    }
+
+    body.dark .chat-input {
+      background: #1f2937;
+    }
+
+    body.dark .chat-input input {
+      background: #374151;
+      color: white;
+      border: 1px solid #4b5563;
+    }
+
+    body.dark .chat-input button {
+      background: #3b82f6;
+    }
+
+    body.dark .user {
+      background-color: #1e3a8a;
+      color: #bfdbfe;
+    }
+
+    body.dark .bot {
+      background-color: #374151;
+      color: #f3f4f6;
+    }
+
+    body.dark .timestamp {
+      color: #6b7280;
+    }
+
+    #toggle-dark {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: #2563eb;
+      color: white;
+      transition: background 0.3s;
+    }
+
+    #toggle-dark:hover {
+      background-color: #1e40af;
+    }
+  </style>
+</head>
+<body>
+  <button id="toggle-dark">🌙 Dark Mode</button>
+
+  <div class="chat-container">
+    <div id="chat" class="chat-messages"></div>
+    <form class="chat-input" id="chat-form">
+      <input type="text" id="question" placeholder="Type your message..." required autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('question');
+    const chat = document.getElementById('chat');
+
+    function formatTimestamp(date) {
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+
+      if (diffMins < 1) return 'Just now';
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const res = await fetch('http://localhost:5000/conversation', {
+            credentials: 'include'
+            });
+            const data = await res.json();
+            if (Array.isArray(data.chat)) {
+            data.chat.forEach(entry => {
+                addMessage(entry.message, entry.role === 'bot' ? 'bot' : 'user');
+            });
+            }
+        } catch (err) {
+            console.error('Failed to fetch chat history:', err);
+        }
+    });
+
+
+    function addMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.className = `message ${sender}`;
+
+      const time = new Date();
+      const timestampText = formatTimestamp(time);
+      const fullTimestamp = time.toLocaleString();
+
+      const label = sender === 'bot'
+        ? `<span class="sender-label">🤖 TynyBot</span>`
+        : '';
+
+      msg.innerHTML = `
+        ${label}
+        ${text}
+        <div class="timestamp ${sender}" title="${fullTimestamp}">${timestampText}</div>
+      `;
+
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const question = input.value.trim();
+      if (!question) return;
+
+      addMessage(question, 'user');
+      input.value = '';
+
+      // Add typing indicator
+      const typingMsg = document.createElement('div');
+      typingMsg.className = 'message bot';
+      typingMsg.id = 'typing-indicator';
+      typingMsg.innerHTML = `<span class="sender-label">🤖 TynyBot</span>Typing...`;
+      chat.appendChild(typingMsg);
+      chat.scrollTop = chat.scrollHeight;
+
+      try {
+        const response = await fetch('http://localhost:5000/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ question }),
+        });
+
+        const data = await response.json();
+
+        document.getElementById('typing-indicator')?.remove();
+        addMessage(data.reply || 'No response from bot.', 'bot');
+      } catch (err) {
+        document.getElementById('typing-indicator')?.remove();
+        console.error(err);
+        addMessage('Error connecting to the bot.', 'bot');
+      }
+    });
+
+    // Dark mode toggle
+    const toggleBtn = document.getElementById('toggle-dark');
+    toggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      toggleBtn.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
+    });
+  </script>
+</body>
+</html>
